@@ -348,17 +348,21 @@ function useAntdTable<Result, Item>(
       s: SorterResult<Item> = {} as SorterResult<Item>,
     ) => {
       // antd table 的初始状态 filter 带有 null 字段，需要先去除后再比较
-      const realFilter = {...f};
-      Object.entries(realFilter).forEach( item => {
-        if(item[1] === null) {
-          delete (realFilter as Object)[item[0] as keyof Object];
-        }
-      });
+      const removeEmptyies = (obj: Object) => {
+        const ret = { ...obj };
+        Object.entries(ret).forEach(item => {
+          if (item[1] === null || item[1] === undefined) {
+            delete (ret as Object)[item[0] as keyof Object];
+          }
+        });
+        return ret;
+      };
+
       /* 如果 filter，或者 sort 变化，就初始化 current */
       const needReload =
-        !isEqual(realFilter, state.filters) ||
-        s.field !== state.sorter.field ||
-        s.order !== state.sorter.order;
+        !isEqual(removeEmptyies(f), removeEmptyies(state.filters)) ||
+        !isEqual(removeEmptyies(state.sorter), removeEmptyies(s));
+
       dispatch({
         type: 'updateState',
         payload: {
