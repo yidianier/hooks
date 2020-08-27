@@ -24,12 +24,10 @@ Production-ready React Hook to manage asynchronous data.
 * Debounce
 * Throttle
 * Concurrent Request
+* Dependent Request
 * Loading Delay
 * Pagination
 * Load more, data recovery and scroll position recovery
-* [ ] Retry on error
-* [ ] Request timeout management
-* [ ] Suspense
 * ......
 
 ## Examples
@@ -49,6 +47,10 @@ Production-ready React Hook to manage asynchronous data.
 ### Concurrent Request
 
 <code src="./demo/concurrent.tsx" />
+
+### Dependent Request
+
+<code src="./demo/ready.tsx" />
 
 ### Debounce
 
@@ -124,6 +126,8 @@ const {
   focusTimespan,
   debounceInterval,
   throttleInterval,
+  ready,
+  throwOnError,
 });
 ```
 
@@ -154,7 +158,6 @@ All Options are optional.
 | onSuccess            | <ul><li> Triggered when the service resolved, the parameters are `data` and` params` </li><li> If `formatResult` is present,` data` is the formatted data.</li></ul>                                                                                                                                                                                                                                      | `(data: any, params: any[]) => void`    | -       |
 | onError              | Triggered when the service reports an error. The parameters are `error` and` params`.                                                                                                                                                                                                                                                                                                                      | `(error: Error, params: any[]) => void` | -       |
 | fetchKey             | According to params, get the key of the current request. After setting, we will maintain the request status of different key values ​​at the same time in fetches.                                                                                                                                                                                                                                             | `(...params: any[]) => string`          | -       |
-| cacheKey             | <ul><li> Request a unique identifier. If `cacheKey` is set, we will enable the cache mechanism</li><li> We cache `data`,` error`, `params`,` loading` for each request </li><li> Under the cache mechanism, the same request will return the data in the cache first, and a new request will be sent behind the scene. After the new data is returned, the data update will be triggered again. </li></ul> | `string`                                | -       |
 | defaultParams        | If `manual = false`, the default parameters when run is executed automatically,                                                                                                                                                                                                                                                                                                                            | `any[]`                                 | -       |
 | loadingDelay         | Set delay time for display loading to avoid flicker                                                                                                                                                                                                                                                                                                                                                        | `number`                                | -       |
 | pollingInterval      | Polling interval in milliseconds. After setting, it will enter polling mode and trigger `run` periodically.                                                                                                                                                                                                                                                                                                | `number`                                | -       |
@@ -163,14 +166,18 @@ All Options are optional.
 | focusTimespan        | <ul><li>  If the request is re-initiated every time, it is not good. We need to have a time interval. In the current time interval, the request will not be re-initiated. </li><li> Needs to be used with refreshOnWindowFocus. </li></ul>                                                                                                                                                                 | `number`                                | `5000`  |
 | debounceInterval     | debounce interval, the unit is millisecond. After setting, request to enter debounce mode.                                                                                                                                                                                                                                                                                                                 | `number`                                | -       |
 | throttleInterval     | throttle interval, the unit is millisecond. After setting, request to enter throttle mode.                                                                                                                                                                                                                                                                                                                 | `number`                                | -       |
-
+| ready     | Only when ready is `true`, will the request be initiated                                                                                                                                                                                                               | `boolean`                                | `true`       |
+| throwOnError     | If the service errors, the error will only be logged. If you want an error to be thrown, pass the throwOnError: true                                    | `boolean`                                | `false`       |
+| cacheKey             | <ul><li> Request a unique identifier. If `cacheKey` is set, we will enable the cache mechanism</li><li> We cache `data`,` error`, `params`,` loading` for each request </li><li> Under the cache mechanism, the same request will return the data in the cache first, and a new request will be sent behind the scene. After the new data is returned, the data update will be triggered again. </li></ul> | `string`                                | -       |
+| cacheTime             | <ul><li> the cache data recycling time. Default cache data is recycled after 5 minutes </li><li> If set to `-1`, it means that the cached data will never expire. </li><li> Need to be used with `cacheKey` </li></ul> | `number`                                | `300000`       |
+| staleTime             | <ul><li> The cached data keeps fresh time. Within this time interval, the data is considered fresh and the request will not be resent </li><li> If set to `-1`, it means the data is always fresh. </li><li> Need to be used with `cacheKey` </li> </ul> | `number`                                | `0`       |
 ## Advanced usage
 
 Based on the basic useRequest, we can further encapsulate and implement more advanced customization requirements. Currently useRequest has three scenarios: `Integrated Request Library`,` Pagination` and `Load More`. You can refer to the code to implement your own encapsulation. Refer to the implementation of [useRequest](./src/useRequest.ts)、[usePaginated](./src/usePaginated.ts)、[useLoadMore](./src/useLoadMore.ts) 的实现。
 
 ### Integration Request Library
 
-If service is `string`,` object`, `(... args) => string | object`, we will automatically use [umi-request] (https://github.com/umijs/umi-request/blob /master/README_zh-CN.md) to send network requests. umi-request is a request library similar to axios and fetch.
+If service is `string`,` object`, `(... args) => string | object`, we will automatically use [fetch] (https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch) to send network requests. 
 
 ```javascript
 // Usage 1
@@ -189,13 +196,13 @@ const { data, error, loading } = useRequest((userId)=> `/api/userInfo/${userId}`
 const { loading, run } = useRequest((username) => ({
   url: '/api/changeUsername',
   method: 'post',
-  data: { username },
+  body: JSON.stringify({ username }),
 }), {
   manual: true,
 });
 ```
 
-<code src="./demo/umiRequest.tsx" />
+<code src="./demo/fetch.tsx" />
 
 <br>
 
@@ -214,7 +221,7 @@ const {...} = useRequest<R>(
 
 #### Service
 
-If service is `string`,` object`, `(... args) => string | object`, then automatically use` umi-request` to send the request.
+If service is `string`,` object`, `(... args) => string | object`, then automatically use `fetch` to send the request.
 
 #### Params
 
@@ -279,7 +286,7 @@ const {
 | Property   | Description                                                                                                                                  | Type |
 |------------|----------------------------------------------------------------------------------------------------------------------------------------------|------|
 | pagination | Paging data and methods for operating paging                                                                                                 | -    |
-| tableProps | The data structure of the [antd Table] (https://ant.design/components/table-cn/) component can be used directly on the AntD Table component. | -    |
+| tableProps | The data structure of the [antd Table] (https://ant.design/components/table-cn/) component can be used directly on the antd Table component. | -    |
 
 #### Params
 
@@ -342,21 +349,21 @@ const {
 
 ## Global configuration
 
-### UseAPIProvider
-You can set global options at the outermost level of the project via `UseAPIProvider`.
+### UseRequestProvider
+You can set global options at the outermost level of the project via `UseRequestProvider`.
 
 ```javascript
-import {UseAPIProvider} from '@umijs/use-request';
+import { UseRequestProvider } from 'ahooks';
 
 export function ({children})=>{
   return (
-    <UseAPIProvider value={{
+    <UseRequestProvider value={{
       refreshOnWindowFocus: true,
       requestMethod: (param)=> axios(param),
       ...
     }}>
       {children}
-    </UseAPIProvider>
+    </UseRequestProvider>
   )
 }
 ```
@@ -368,30 +375,14 @@ Yes, You shoud use it like this.
 
 ```javascript
 
-const firstRequest = useReqeust(service);
-const secondRequest = useReqeust(service);
+const firstRequest = useRequest(service);
+const secondRequest = useRequest(service);
 
 // firstRequest.loading
 // firstRequest.data
 
 // secondRequest.loading
 // secondRequest.data
-```
-
-### 2. How do I use umi-request's `use` `errorHandler` etc.?
-
-You can configure the `request` after processing by `requsetMehod`.
-
-```javascript
-// your request
-import { request } from '@/utils/request';
-import { UseAPIProvider } from '@umijs/use-request';
-
-<UseAPIProvider value={{
-  requestMethod: request,
-}}>
-
-</UseAPIProvider>
 ```
 
 ## Thanks

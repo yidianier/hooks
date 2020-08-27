@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, MutableRefObject } from 'react';
 import useSize from '../useSize';
 
 export interface OptionType {
@@ -7,7 +7,8 @@ export interface OptionType {
 }
 
 export default <T = any>(list: T[], options: OptionType) => {
-  const [size, containerRef] = useSize<HTMLElement>();
+  const containerRef = useRef<HTMLElement | null>();
+  const size = useSize(containerRef as MutableRefObject<HTMLElement>);
   // 暂时禁止 cache
   // const distanceCache = useRef<{ [key: number]: number }>({});
   const [state, setState] = useState({ start: 0, end: 10 });
@@ -25,7 +26,7 @@ export default <T = any>(list: T[], options: OptionType) => {
     let sum = 0;
     let capacity = 0;
     for (let i = start; i < list.length; i++) {
-      const height = (itemHeight as ((index: number) => number))(i);
+      const height = (itemHeight as (index: number) => number)(i);
       sum += height;
       if (sum >= containerHeight) {
         capacity = i;
@@ -42,7 +43,7 @@ export default <T = any>(list: T[], options: OptionType) => {
     let sum = 0;
     let offset = 0;
     for (let i = 0; i < list.length; i++) {
-      const height = (itemHeight as ((index: number) => number))(i);
+      const height = (itemHeight as (index: number) => number)(i);
       sum += height;
       if (sum >= scrollTop) {
         offset = i;
@@ -60,7 +61,10 @@ export default <T = any>(list: T[], options: OptionType) => {
 
       const from = offset - overscan;
       const to = offset + viewCapacity + overscan;
-      setState({ start: from < 0 ? 0 : from, end: to > list.length ? list.length : to });
+      setState({
+        start: from < 0 ? 0 : from,
+        end: to > list.length ? list.length : to,
+      });
     }
   };
 
@@ -101,6 +105,8 @@ export default <T = any>(list: T[], options: OptionType) => {
     }
   };
 
+  const offsetTop = useMemo(() => getDistanceTop(state.start), [state.start]);
+
   return {
     list: list.slice(state.start, state.end).map((ele, index) => ({
       data: ele,
@@ -118,7 +124,11 @@ export default <T = any>(list: T[], options: OptionType) => {
       style: { overflowY: 'auto' as const },
     },
     wrapperProps: {
-      style: { width: '100%', height: totalHeight, paddingTop: getDistanceTop(state.start) },
+      style: {
+        width: '100%',
+        height: totalHeight - offsetTop,
+        marginTop: offsetTop,
+      },
     },
   };
 };

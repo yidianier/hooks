@@ -1,5 +1,4 @@
-import { renderHook, act, RenderHookResult } from '@testing-library/react-hooks';
-import { DependencyList } from 'react';
+import { act, renderHook, RenderHookResult } from '@testing-library/react-hooks';
 import useVirtualList, { OptionType } from '../index';
 
 /* 暂时关闭 act 警告  见：https://github.com/testing-library/react-testing-library/issues/281#issuecomment-480349256 */
@@ -34,7 +33,7 @@ describe('useVirtualList', () => {
         };
         wrapperProps: {
           style: {
-            paddingTop: number;
+            marginTop: number;
             height: number;
           };
         };
@@ -96,8 +95,8 @@ describe('useVirtualList', () => {
       expect((hook.result.current.list[5] as { data: number }).data).toBe(25);
       expect((hook.result.current.list[5] as { index: number }).index).toBe(25);
 
-      expect(hook.result.current.wrapperProps.style.paddingTop).toBe(20 * averageHeight);
-      expect(hook.result.current.wrapperProps.style.height).toBe(99998 * averageHeight + 30);
+      expect(hook.result.current.wrapperProps.style.marginTop).toBe(20 * averageHeight);
+      expect(hook.result.current.wrapperProps.style.height).toBe((99998 - 20) * averageHeight + 30);
     });
   });
 });

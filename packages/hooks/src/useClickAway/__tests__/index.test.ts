@@ -30,16 +30,13 @@ describe('useClickAway', () => {
       }, dom),
     );
 
-    document.body.click();
-    expect(state).toEqual(0);
-
     rerender(() => container);
     container.click();
     expect(state).toEqual(0);
     document.body.click();
     expect(state).toEqual(1);
 
-    rerender(container1);
+    rerender(() => container1);
     container1.click();
     expect(state).toEqual(1);
     document.body.click();
@@ -48,5 +45,26 @@ describe('useClickAway', () => {
     unmount();
     document.body.click();
     expect(state).toEqual(2);
+  });
+
+  it('should works on multiple target', async () => {
+    let state: number = 0;
+    const { rerender, unmount } = renderHook((dom: any) =>
+      useClickAway(() => {
+        state++;
+      }, dom),
+    );
+
+    rerender([container, container1]);
+    container.click();
+    expect(state).toEqual(0);
+    container1.click();
+    expect(state).toEqual(0);
+    document.body.click();
+    expect(state).toEqual(1);
+
+    unmount();
+    document.body.click();
+    expect(state).toEqual(1);
   });
 });

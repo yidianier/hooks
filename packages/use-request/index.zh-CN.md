@@ -24,12 +24,10 @@ legacy: /zh-CN/async
 * 防抖
 * 节流
 * 并行请求
+* 依赖请求
 * loading delay
 * 分页
 * 加载更多，数据恢复 + 滚动位置恢复
-* [ ] 错误重试
-* [ ] 请求超时管理
-* [ ] suspense
 * ......
 
 ## 代码演示
@@ -49,6 +47,10 @@ legacy: /zh-CN/async
 ### 并行请求
 
 <code src="./demo/concurrent.tsx" />
+
+### 依赖请求
+
+<code src="./demo/ready.tsx" />
 
 ### 防抖
 
@@ -124,6 +126,8 @@ const {
   focusTimespan,
   debounceInterval,
   throttleInterval,
+  ready,
+  throwOnError,
 });
 ```
 
@@ -154,23 +158,26 @@ const {
 | onSuccess            | <ul><li> service resolve 时触发，参数为 `data` 和 `params` </li><li> 如果有 `formatResult` ，则 `data` 为格式化后数据。</li></ul>                                                                                                                                       | `(data: any, params: any[]) => void`    | -       |
 | onError              | service 报错时触发，参数为 `error` 和 `params`。                                                                                                                                                                                                                         | `(error: Error, params: any[]) => void` | -       |
 | fetchKey             | 根据 params，获取当前请求的 key，设置之后，我们会在 `fetches` 中同时维护不同 `key` 值的请求状态。                                                                                                                                                                        | `(...params: any[]) => string`          | -       |
-| cacheKey             | <ul><li> 请求唯一标识。如果设置了 `cacheKey`，我们会启用缓存机制 </li><li> 我们会缓存每次请求的 `data` , `error` , `params` , `loading` </li><li> 在缓存机制下，同样的请求我们会先返回缓存中的数据，同时会在背后发送新的请求，待新数据返回后，重新触发数据更新</li></ul> | `string`                                | -       |
 | defaultParams        | 如果 `manual=false` ，自动执行 `run` 的时候，默认带上的参数                                                                                                                                                                                                              | `any[]`                                 | -       |
 | loadingDelay         | 设置显示 loading 的延迟时间，避免闪烁                                                                                                                                                                                                                                    | `number`                                | -       |
 | pollingInterval      | 轮询间隔，单位为毫秒。设置后，将进入轮询模式，定时触发 `run`                                                                                                                                                                                                             | `number`                                | -       |
 | pollingWhenHidden    | <ul><li> 在页面隐藏时，是否继续轮询。默认为 `true`，即不会停止轮询 </li><li> 如果设置为 `false` , 在页面隐藏时会暂时停止轮询，页面重新显示时继续上次轮询 </li></ul>                                                                                                      | `boolean`                               | `true`  |
 | refreshOnWindowFocus | <ul><li> 在屏幕重新获取焦点或重新显示时，是否重新发起请求。默认为 `false`，即不会重新发起请求。 </li><li>如果设置为 `true`，在屏幕重新聚焦或重新显示时，会重新发起请求。</li></ul>                                                                                       | `boolean`                               | `false` |
-| focusTimespan        | <ul><li> 屏幕重新聚焦，如果每次都重新发起请求，不是很好，我们需要有一个时间间隔，在当前时间间隔内，不会重新发起请求 </li><li> 需要配置 `refreshOnWindowFocus` 使用。 </li></ul>                                                                                          | `number`                                | `5000`  |
+| focusTimespan        | <ul><li> 屏幕重新聚焦，如果每次都重新发起请求，不是很好，我们需要有一个时间间隔，在当前时间间隔内，不会重新发起请求 </li><li> 需要配和 `refreshOnWindowFocus` 使用。 </li></ul>                                                                                          | `number`                                | `5000`  |
 | debounceInterval     | 防抖间隔, 单位为毫秒，设置后，请求进入防抖模式。                                                                                                                                                                                                                         | `number`                                | -       |
 | throttleInterval     | 节流间隔, 单位为毫秒，设置后，请求进入节流模式。                                                                                                                                                                                                                         | `number`                                | -       |
-
+| ready     | 只有当 ready 为 `true` 时，才会发起请求                                                                                                                                                                                                                         | `boolean`                                | `true`       |
+| throwOnError     | 如果 service 报错，我们会帮你捕获并打印日志，如果你需要自己处理异常，可以设置 throwOnError 为 true                                   | `boolean`                                | `false`       |
+| cacheKey             | <ul><li> 请求唯一标识。如果设置了 `cacheKey`，我们会启用缓存机制 </li><li> 我们会缓存每次请求的 `data` , `error` , `params` , `loading` </li><li> 在缓存机制下，同样的请求我们会先返回缓存中的数据，同时会在背后发送新的请求，待新数据返回后，重新触发数据更新</li></ul> | `string`                                | -       |
+| cacheTime             | <ul><li> 设置缓存数据回收时间。默认缓存数据 5 分钟后回收 </li><li> 如果设置为 `-1`, 则表示缓存数据永不过期</li><li> 需要配和 `cacheKey` 使用 </li></ul> | `number`                                | `300000`       |
+| staleTime             | <ul><li> 缓存数据保持新鲜时间。在该时间间隔内，认为数据是新鲜的，不会重新发请求 </li><li> 如果设置为 `-1`，则表示数据永远新鲜</li><li> 需要配和 `cacheKey` 使用 </li> </ul> | `number`                                | `0`       |
 ## 扩展用法
 
-基于基础的 useRequest，我们可以进一步封装，实现更高级的定制需求。当前 useRequest 内置了 `集成请求库`，`分页` 和 `加载更多` 三种场景。你可以参考代码，实现自己的封装。参考 [useRequest](https://github.com/umijs/hooks/blob/master/packages/use-request/src/useRequest.ts)、[usePaginated](https://github.com/umijs/hooks/blob/master/packages/use-request/src/usePaginated.ts)、[useLoadMore](https://github.com/umijs/hooks/blob/master/packages/use-request/src/useLoadMore.ts) 的实现。
+基于基础的 useRequest，我们可以进一步封装，实现更高级的定制需求。当前 useRequest 内置了 `集成请求库`，`分页` 和 `加载更多` 三种场景。你可以参考代码，实现自己的封装。参考 [useRequest](https://github.com/alibaba/hooks/blob/master/packages/use-request/src/useRequest.ts)、[usePaginated](https://github.com/alibaba/hooks/blob/master/packages/use-request/src/usePaginated.ts)、[useLoadMore](https://github.com/alibaba/hooks/blob/master/packages/use-request/src/useLoadMore.ts) 的实现。
 
 ### 集成请求库
 
-如果 service 是 `string` 、 `object` 、 `(...args)=> string|object`, 我们会自动使用 [umi-request](https://github.com/umijs/umi-request/blob/master/README_zh-CN.md) 来发送网络请求。umi-request 是类似 axios、fetch 的请求库。
+如果 service 是 `string` 、 `object` 、 `(...args)=> string|object`, 则自动使用 [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch) 来发送网络请求。
 
 ```javascript
 // 用法 1
@@ -189,13 +196,13 @@ const { data, error, loading } = useRequest((userId)=> `/api/userInfo/${userId}`
 const { loading, run } = useRequest((username) => ({
   url: '/api/changeUsername',
   method: 'post',
-  data: { username },
+  body: JSON.stringify({ username }),
 }), {
   manual: true,
 });
 ```
 
-<code src="./demo/umiRequest.tsx" />
+<code src="./demo/fetch.tsx" />
 
 <br>
 
@@ -214,7 +221,7 @@ const {...} = useRequest<R>(
 
 #### Service
 
-如果 service 是 `string` 、 `object` 、 `(...args)=> string|object`，则自动使用 `umi-request` 来发送请求。
+如果 service 是 `string` 、 `object` 、 `(...args)=> string|object`，则自动使用 `fetch` 来发送请求。
 
 #### Params
 
@@ -279,7 +286,7 @@ const {
 | 参数       | 说明                                                                                                        | 类型 |
 |------------|-------------------------------------------------------------------------------------------------------------|------|
 | pagination | 分页数据及操作分页的方法                                                                                    | -    |
-| tableProps | 适配 [antd Table](https://ant.design/components/table-cn/) 组件的数据结构，可以直接用在 AntD Table 组件上。 | -    |
+| tableProps | 适配 [antd Table](https://ant.design/components/table-cn/) 组件的数据结构，可以直接用在 antd Table 组件上。 | -    |
 
 
 #### Params
@@ -343,21 +350,21 @@ const {
 
 ## 全局配置
 
-### UseAPIProvider
-你可以通过 `UseAPIProvider` 在项目的最外层设置全局 options。
+### UseRequestProvider
+你可以通过 `UseRequestProvider` 在项目的最外层设置全局 options。
 
 ```javascript
-import {UseAPIProvider} from '@umijs/use-request';
+import { UseRequestProvider } from 'ahooks';
 
 export function ({children})=>{
   return (
-    <UseAPIProvider value={{
+    <UseRequestProvider value={{
       refreshOnWindowFocus: true,
       requestMethod: (param)=> axios(param),
       ...
     }}>
       {children}
-    </UseAPIProvider>
+    </UseRequestProvider>
   )
 }
 ```
@@ -370,30 +377,14 @@ export function ({children})=>{
 
 ```javascript
 
-const firstRequest = useReqeust(service);
-const secondRequest = useReqeust(service);
+const firstRequest = useRequest(service);
+const secondRequest = useRequest(service);
 
 // firstRequest.loading
 // firstRequest.data
 
 // secondRequest.loading
 // secondRequest.data
-```
-
-### 2. 我如何使用 umi-request 的 `use` `errorHandler` 等？
-
-你可以将处理完后的 `request` 通过 `requsetMehod` 配置一下即可。
-
-```javascript
-// 你自己封装的 request
-import { request } from '@/utils/request';
-import { UseAPIProvider } from '@umijs/use-request';
-
-<UseAPIProvider value={{
-  requestMethod: request,
-}}>
-
-</UseAPIProvider>
 ```
 
 ## 致谢

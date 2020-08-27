@@ -13,11 +13,11 @@ class TestStorage implements Storage {
     this.length = 0;
   }
 
-  getItem(key: string): string {
-    return this._values.get(key);
+  getItem(key: string): string | null {
+    return this._values.get(key) || null;
   }
 
-  key(index: number): string {
+  key(index: number): string | null {
     if (index >= this._values.size) {
       return null;
     }
@@ -49,14 +49,17 @@ describe('useStorageState', () => {
   const setUp = <T>(props: StorageStateProps<T>) => {
     const storage = new TestStorage();
 
-    return renderHook(({ key, defaultValue }: StorageStateProps<T>) => {
-      const [state, setState] = useStorageState(storage, key, defaultValue);
+    return renderHook(
+      ({ key, defaultValue }: StorageStateProps<T>) => {
+        const [state, setState] = useStorageState(storage, key, defaultValue);
 
-      return { state, setState };
-    }, {
-      initialProps: props
-    });
-  }
+        return { state, setState };
+      },
+      {
+        initialProps: props,
+      },
+    );
+  };
 
   it('should be defined', () => {
     expect(useStorageState);

@@ -1,10 +1,9 @@
-import { renderHook, act } from '@testing-library/react-hooks';
-import useKeyPress, { KeyFilter, EventHandler, keyEvent } from '../index';
+import { renderHook } from '@testing-library/react-hooks';
+import useKeyPress, { EventHandler, KeyFilter } from '../index';
 
 interface Props {
   keyFilter: KeyFilter;
   eventHandler: EventHandler;
-  events: Array<keyEvent>;
 }
 
 describe('useKeyPress', () => {
@@ -14,12 +13,11 @@ describe('useKeyPress', () => {
 
   it('test on mounted', async () => {
     const { rerender, unmount } = renderHook(
-      (props: Props) => useKeyPress(props.keyFilter, props.eventHandler, props.events),
+      (props: Props) => useKeyPress(props.keyFilter, props.eventHandler),
       {
         initialProps: {
           keyFilter: 'a',
-          eventHandler: event => {},
-          events: ['keydown'],
+          eventHandler: (event) => {},
         },
       },
     );
